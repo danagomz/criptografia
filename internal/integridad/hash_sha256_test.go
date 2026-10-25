@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/equipo/proteccion-logs/internal/modelo"
+	"github.com/equipo/criptografia/internal/modelo"
 )
 
 func samplePayload() modelo.Payload {

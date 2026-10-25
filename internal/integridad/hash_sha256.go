@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/equipo/proteccion-logs/internal/modelo"
+	"github.com/equipo/criptografia/internal/modelo"
 )
 
 var (

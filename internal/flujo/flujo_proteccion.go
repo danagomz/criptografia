@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/equipo/proteccion-logs/internal/almacenamiento"
-	"github.com/equipo/proteccion-logs/internal/cifrado"
-	"github.com/equipo/proteccion-logs/internal/integridad"
-	"github.com/equipo/proteccion-logs/internal/modelo"
+	"github.com/equipo/criptografia/internal/almacenamiento"
+	"github.com/equipo/criptografia/internal/cifrado"
+	"github.com/equipo/criptografia/internal/integridad"
+	"github.com/equipo/criptografia/internal/modelo"
 )
 
 // Nombres de los artefactos producidos en el directorio de salida.
@@ -29,7 +29,7 @@ const (
 )
 
 // aad liga el ciphertext a este formato: GCM rechaza el descifrado si cambia.
-var aad = []byte("proteccion-logs/v1")
+var aad = []byte("criptografia/v1")
 
 var (
 	// ErrCiphertextHashMismatch indica que log_cifrado.bin no coincide con su hash almacenado.

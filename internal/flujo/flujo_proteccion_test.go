@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/equipo/proteccion-logs/internal/almacenamiento"
-	"github.com/equipo/proteccion-logs/internal/cifrado"
-	"github.com/equipo/proteccion-logs/internal/generador"
-	"github.com/equipo/proteccion-logs/internal/integridad"
-	"github.com/equipo/proteccion-logs/internal/modelo"
+	"github.com/equipo/criptografia/internal/almacenamiento"
+	"github.com/equipo/criptografia/internal/cifrado"
+	"github.com/equipo/criptografia/internal/generador"
+	"github.com/equipo/criptografia/internal/integridad"
+	"github.com/equipo/criptografia/internal/modelo"
 )
 
 var fixedNow = time.Date(2026, 10, 25, 12, 0, 0, 0, time.UTC)

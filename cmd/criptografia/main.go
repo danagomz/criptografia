@@ -1,4 +1,4 @@
-// Programa proteccion-logs: CLI interactiva que genera, hashea, cifra y verifica un
+// Programa criptografia: CLI interactiva que genera, hashea, cifra y verifica un
 // log estructurado de eventos de notas.
 package main
 
@@ -8,10 +8,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/equipo/proteccion-logs/internal/almacenamiento"
-	"github.com/equipo/proteccion-logs/internal/flujo"
-	"github.com/equipo/proteccion-logs/internal/generador"
-	"github.com/equipo/proteccion-logs/internal/menu"
+	"github.com/equipo/criptografia/internal/almacenamiento"
+	"github.com/equipo/criptografia/internal/flujo"
+	"github.com/equipo/criptografia/internal/generador"
+	"github.com/equipo/criptografia/internal/menu"
 )
 
 func main() {

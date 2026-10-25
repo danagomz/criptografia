@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-var testAAD = []byte("proteccion-logs/test")
+var testAAD = []byte("criptografia/test")
 
 func mustMaterial(t *testing.T) Material {
 	t.Helper()

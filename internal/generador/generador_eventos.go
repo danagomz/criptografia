@@ -7,7 +7,7 @@ import (
 	"math/rand/v2"
 	"time"
 
-	"github.com/equipo/proteccion-logs/internal/modelo"
+	"github.com/equipo/criptografia/internal/modelo"
 )
 
 const (

@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/equipo/proteccion-logs/internal/flujo"
-	"github.com/equipo/proteccion-logs/internal/generador"
-	"github.com/equipo/proteccion-logs/internal/modelo"
+	"github.com/equipo/criptografia/internal/flujo"
+	"github.com/equipo/criptografia/internal/generador"
+	"github.com/equipo/criptografia/internal/modelo"
 )
 
 // fakePrompter reproduce un guion de selecciones y respuestas.

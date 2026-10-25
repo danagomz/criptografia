@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/equipo/proteccion-logs/internal/flujo"
-	"github.com/equipo/proteccion-logs/internal/generador"
-	"github.com/equipo/proteccion-logs/internal/modelo"
+	"github.com/equipo/criptografia/internal/flujo"
+	"github.com/equipo/criptografia/internal/generador"
+	"github.com/equipo/criptografia/internal/modelo"
 )
 
 // ErrAborted indica que el usuario canceló (Ctrl+C / Ctrl+D) en un prompt.

@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/equipo/proteccion-logs/internal/modelo"
+	"github.com/equipo/criptografia/internal/modelo"
 )
 
 var start = time.Date(2026, 10, 1, 8, 0, 0, 0, time.UTC)
