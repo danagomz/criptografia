@@ -1,5 +1,5 @@
-// Package generator produce eventos aleatorios de registro y modificación de notas.
-package generator
+// Package generador produce eventos aleatorios de registro y modificación de notas.
+package generador
 
 import (
 	"errors"
@@ -7,7 +7,7 @@ import (
 	"math/rand/v2"
 	"time"
 
-	"github.com/equipo/logvault/internal/domain"
+	"github.com/equipo/proteccion-logs/internal/modelo"
 )
 
 const (
@@ -25,7 +25,7 @@ const (
 )
 
 // ErrInvalidCount indica una cantidad de eventos fuera del rango permitido.
-var ErrInvalidCount = errors.New("generator: cantidad de eventos inválida")
+var ErrInvalidCount = errors.New("generador: cantidad de eventos inválida")
 
 // ValidateCount verifica que count esté en [1, MaxEvents].
 func ValidateCount(count int) error {
@@ -51,11 +51,11 @@ func New(seed1, seed2 uint64, start time.Time) *Generator {
 }
 
 // Generate devuelve count payloads (aún sin hash) ordenados cronológicamente.
-func (g *Generator) Generate(count int) ([]domain.Payload, error) {
+func (g *Generator) Generate(count int) ([]modelo.Payload, error) {
 	if err := ValidateCount(count); err != nil {
 		return nil, err
 	}
-	payloads := make([]domain.Payload, 0, count)
+	payloads := make([]modelo.Payload, 0, count)
 	clock := g.start
 	for seq := 1; seq <= count; seq++ {
 		clock = clock.Add(time.Duration(1+g.rng.IntN(maxStepSeconds)) * time.Second)
@@ -64,8 +64,8 @@ func (g *Generator) Generate(count int) ([]domain.Payload, error) {
 	return payloads, nil
 }
 
-func (g *Generator) nextPayload(seq int, ts time.Time) domain.Payload {
-	p := domain.Payload{
+func (g *Generator) nextPayload(seq int, ts time.Time) modelo.Payload {
+	p := modelo.Payload{
 		EventID:    fmt.Sprintf("EVT-%08d", seq),
 		Timestamp:  ts,
 		ActorUID:   g.uid("PRF", 3, professorPool),
@@ -74,7 +74,7 @@ func (g *Generator) nextPayload(seq int, ts time.Time) domain.Payload {
 	}
 
 	if g.rng.IntN(2) == 0 {
-		p.EventType = domain.GradeRegistered
+		p.EventType = modelo.GradeRegistered
 		p.NewValue = cents(g.rng.IntN(maxGradeCents + 1))
 		return p
 	}
@@ -87,7 +87,7 @@ func (g *Generator) nextPayload(seq int, ts time.Time) domain.Payload {
 		next++
 	}
 	previous := cents(prev)
-	p.EventType = domain.GradeModified
+	p.EventType = modelo.GradeModified
 	p.PreviousValue = &previous
 	p.NewValue = cents(next)
 	return p

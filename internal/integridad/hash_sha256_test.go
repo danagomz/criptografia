@@ -1,4 +1,4 @@
-package integrity
+package integridad
 
 import (
 	"encoding/json"
@@ -7,14 +7,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/equipo/logvault/internal/domain"
+	"github.com/equipo/proteccion-logs/internal/modelo"
 )
 
-func samplePayload() domain.Payload {
+func samplePayload() modelo.Payload {
 	prev := 2.5
-	return domain.Payload{
+	return modelo.Payload{
 		EventID:       "EVT-00000001",
-		EventType:     domain.GradeModified,
+		EventType:     modelo.GradeModified,
 		Timestamp:     time.Date(2026, 10, 1, 8, 0, 5, 0, time.UTC),
 		ActorUID:      "PRF-001",
 		StudentUID:    "STU-00042",
@@ -44,15 +44,15 @@ func TestPayloadHashChangesWhenAnyFieldChanges(t *testing.T) {
 	base, _ := PayloadHash(samplePayload())
 	otherPrev := 1.0
 
-	mutations := map[string]func(*domain.Payload){
-		"event_id":       func(p *domain.Payload) { p.EventID = "EVT-00000002" },
-		"event_type":     func(p *domain.Payload) { p.EventType = domain.GradeRegistered },
-		"timestamp":      func(p *domain.Payload) { p.Timestamp = p.Timestamp.Add(time.Second) },
-		"actor_uid":      func(p *domain.Payload) { p.ActorUID = "PRF-002" },
-		"student_uid":    func(p *domain.Payload) { p.StudentUID = "STU-00043" },
-		"course_uid":     func(p *domain.Payload) { p.CourseUID = "CRS-008" },
-		"previous_value": func(p *domain.Payload) { p.PreviousValue = &otherPrev },
-		"new_value":      func(p *domain.Payload) { p.NewValue = 4.2 },
+	mutations := map[string]func(*modelo.Payload){
+		"event_id":       func(p *modelo.Payload) { p.EventID = "EVT-00000002" },
+		"event_type":     func(p *modelo.Payload) { p.EventType = modelo.GradeRegistered },
+		"timestamp":      func(p *modelo.Payload) { p.Timestamp = p.Timestamp.Add(time.Second) },
+		"actor_uid":      func(p *modelo.Payload) { p.ActorUID = "PRF-002" },
+		"student_uid":    func(p *modelo.Payload) { p.StudentUID = "STU-00043" },
+		"course_uid":     func(p *modelo.Payload) { p.CourseUID = "CRS-008" },
+		"previous_value": func(p *modelo.Payload) { p.PreviousValue = &otherPrev },
+		"new_value":      func(p *modelo.Payload) { p.NewValue = 4.2 },
 	}
 	for field, mutate := range mutations {
 		t.Run(field, func(t *testing.T) {
@@ -91,7 +91,7 @@ func TestEventJSONIsFlatAndHashIsNotPartOfPayload(t *testing.T) {
 	}
 }
 
-func mustHash(t *testing.T, p domain.Payload) string {
+func mustHash(t *testing.T, p modelo.Payload) string {
 	t.Helper()
 	h, err := PayloadHash(p)
 	if err != nil {
@@ -118,20 +118,20 @@ func TestVerifyLog(t *testing.T) {
 	e2, _ := NewEvent(p2)
 
 	t.Run("íntegro", func(t *testing.T) {
-		l := domain.NewLog([]domain.Event{e1, e2}, time.Now())
+		l := modelo.NewLog([]modelo.Event{e1, e2}, time.Now())
 		if err := VerifyLog(l); err != nil {
 			t.Errorf("err = %v", err)
 		}
 	})
 	t.Run("evento alterado", func(t *testing.T) {
-		l := domain.NewLog([]domain.Event{e1, e2}, time.Now())
+		l := modelo.NewLog([]modelo.Event{e1, e2}, time.Now())
 		l.Events[1].NewValue = 0.0
 		if err := VerifyLog(l); !errors.Is(err, ErrPayloadHashMismatch) {
 			t.Errorf("err = %v", err)
 		}
 	})
 	t.Run("evento eliminado", func(t *testing.T) {
-		l := domain.NewLog([]domain.Event{e1, e2}, time.Now())
+		l := modelo.NewLog([]modelo.Event{e1, e2}, time.Now())
 		l.Events = l.Events[:1]
 		if err := VerifyLog(l); !errors.Is(err, ErrEventCountMismatch) {
 			t.Errorf("err = %v", err)
@@ -141,9 +141,9 @@ func TestVerifyLog(t *testing.T) {
 
 func TestChecksumRoundTrip(t *testing.T) {
 	hash := SHA256Hex([]byte("abc"))
-	data := FormatChecksum(hash, "log.json")
+	data := FormatChecksum(hash, "log_original.json")
 
-	if want := hash + "  log.json\n"; string(data) != want {
+	if want := hash + "  log_original.json\n"; string(data) != want {
 		t.Errorf("formato = %q", data)
 	}
 	got, err := ParseChecksum(data)

@@ -1,4 +1,4 @@
-package pipeline
+package flujo
 
 import (
 	"bytes"
@@ -8,22 +8,22 @@ import (
 	"testing"
 	"time"
 
-	"github.com/equipo/logvault/internal/cryptoutil"
-	"github.com/equipo/logvault/internal/domain"
-	"github.com/equipo/logvault/internal/generator"
-	"github.com/equipo/logvault/internal/integrity"
-	"github.com/equipo/logvault/internal/storage"
+	"github.com/equipo/proteccion-logs/internal/almacenamiento"
+	"github.com/equipo/proteccion-logs/internal/cifrado"
+	"github.com/equipo/proteccion-logs/internal/generador"
+	"github.com/equipo/proteccion-logs/internal/integridad"
+	"github.com/equipo/proteccion-logs/internal/modelo"
 )
 
 var fixedNow = time.Date(2026, 10, 25, 12, 0, 0, 0, time.UTC)
 
-func newPipeline(t *testing.T) (*Pipeline, *storage.Store) {
+func newPipeline(t *testing.T) (*Pipeline, *almacenamiento.Store) {
 	t.Helper()
-	store, err := storage.New(t.TempDir())
+	store, err := almacenamiento.New(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
-	gen := generator.New(11, 22, fixedNow.Add(-24*time.Hour))
+	gen := generador.New(11, 22, fixedNow.Add(-24*time.Hour))
 	return New(gen, store, func() time.Time { return fixedNow }), store
 }
 
@@ -44,7 +44,7 @@ func TestRunPreservesInformation(t *testing.T) {
 	if res.EventCount != 200 {
 		t.Errorf("EventCount = %d", res.EventCount)
 	}
-	if res.CountsByType[domain.GradeRegistered]+res.CountsByType[domain.GradeModified] != 200 {
+	if res.CountsByType[modelo.GradeRegistered]+res.CountsByType[modelo.GradeModified] != 200 {
 		t.Errorf("CountsByType no suma 200: %v", res.CountsByType)
 	}
 	if !res.Preserved || res.PlainHash != res.DecryptedHash {
@@ -71,7 +71,7 @@ func TestRunWritesAllArtifactsWithConsistentChecksums(t *testing.T) {
 		if err != nil {
 			t.Fatalf("falta %s: %v", name, err)
 		}
-		if got := integrity.SHA256Hex(data); got != wantHash {
+		if got := integridad.SHA256Hex(data); got != wantHash {
 			t.Errorf("%s: hash en disco %s != reportado %s", name, got, wantHash)
 		}
 	}
@@ -101,7 +101,7 @@ func TestCiphertextDoesNotLeakPlaintext(t *testing.T) {
 
 func TestRunRejectsInvalidCount(t *testing.T) {
 	p, _ := newPipeline(t)
-	if _, err := p.Run(0); !errors.Is(err, generator.ErrInvalidCount) {
+	if _, err := p.Run(0); !errors.Is(err, generador.ErrInvalidCount) {
 		t.Errorf("err = %v, quiero ErrInvalidCount", err)
 	}
 }
@@ -137,16 +137,16 @@ func TestVerifyStoredDetectsTamperedFileOnDisk(t *testing.T) {
 	}
 }
 
-// Un atacante que además recalcula log.enc.sha256 sigue siendo detectado por GCM.
+// Un atacante que además recalcula log_cifrado.sha256 sigue siendo detectado por GCM.
 func TestVerifyStoredDetectsTamperEvenIfHashIsForged(t *testing.T) {
 	p, store := newPipeline(t)
 	mustRun(t, p, 40)
 	flipByteOnDisk(t, store, FileCipherLog)
 	forged, _ := store.Read(FileCipherLog)
-	forgedHash := integrity.SHA256Hex(forged)
-	_ = store.Write(FileCipherHash, integrity.FormatChecksum(forgedHash, FileCipherLog), storage.PermPublic)
+	forgedHash := integridad.SHA256Hex(forged)
+	_ = store.Write(FileCipherHash, integridad.FormatChecksum(forgedHash, FileCipherLog), almacenamiento.PermPublic)
 
-	if err := p.VerifyStored(); !errors.Is(err, cryptoutil.ErrAuthentication) {
+	if err := p.VerifyStored(); !errors.Is(err, cifrado.ErrAuthentication) {
 		t.Errorf("err = %v, quiero ErrAuthentication", err)
 	}
 }
@@ -170,8 +170,8 @@ func TestSimulateTamperingIsDetectedAndLeavesFilesUntouched(t *testing.T) {
 		t.Errorf("report = %+v, ambas defensas debían reaccionar", report)
 	}
 	ct, _ := store.Read(FileCipherLog)
-	if integrity.SHA256Hex(ct) != res.CipherHash {
-		t.Error("la simulación no debe modificar log.enc en disco")
+	if integridad.SHA256Hex(ct) != res.CipherHash {
+		t.Error("la simulación no debe modificar log_cifrado.bin en disco")
 	}
 	if err := p.VerifyStored(); err != nil {
 		t.Errorf("tras la simulación, VerifyStored = %v", err)
@@ -194,7 +194,7 @@ func TestRecoveredLogHasValidEventHashes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := integrity.VerifyLog(l); err != nil {
+	if err := integridad.VerifyLog(l); err != nil {
 		t.Errorf("VerifyLog = %v", err)
 	}
 	if l.EventCount != 25 || len(l.Events) != 25 {
@@ -208,7 +208,7 @@ func TestUnmarshalLogRejectsUnknownFields(t *testing.T) {
 	}
 }
 
-func flipByteOnDisk(t *testing.T, store *storage.Store, name string) {
+func flipByteOnDisk(t *testing.T, store *almacenamiento.Store, name string) {
 	t.Helper()
 	data, err := store.Read(name)
 	if err != nil {

@@ -7,12 +7,12 @@ classDiagram
     direction LR
 
     class main {
-        <<cmd/logvault>>
+        <<cmd/proteccion-logs>>
         +main()
     }
 
     class cli_App {
-        <<internal/cli>>
+        <<internal/menu>>
         -prompter Prompter
         -runner Runner
         +Run() error
@@ -27,36 +27,36 @@ classDiagram
     }
 
     class Pipeline {
-        <<internal/pipeline>>
+        <<internal/flujo>>
         +Run(count) Result
         +VerifyStored() error
         +SimulateTampering() TamperReport
     }
 
     class Generator {
-        <<internal/generator>>
+        <<internal/generador>>
         +Generate(count) Payload[]
     }
     class integrity {
-        <<internal/integrity — SHA-256>>
+        <<internal/integridad — SHA-256>>
         +SHA256Hex(data) string
         +PayloadHash(payload) string
         +NewEvent(payload) Event
         +VerifyLog(log) error
     }
     class cryptoutil {
-        <<internal/cryptoutil — AES-256-GCM>>
+        <<internal/cifrado — AES-256-GCM>>
         +NewMaterial() Material
         +Encrypt(material, plain, aad) bytes
         +Decrypt(material, cipher, aad) bytes
     }
     class Store {
-        <<internal/storage>>
+        <<internal/almacenamiento>>
         +Write(name, data, perm)
         +Read(name) bytes
     }
     class domain {
-        <<internal/domain>>
+        <<internal/modelo>>
         Payload
         Event
         Log

@@ -1,6 +1,6 @@
-// Package pipeline orquesta los 10 pasos del taller: generar, hashear,
+// Package flujo orquesta los 10 pasos del taller: generar, hashear,
 // cifrar, descifrar y comparar el log de eventos académicos.
-package pipeline
+package flujo
 
 import (
 	"bytes"
@@ -10,48 +10,48 @@ import (
 	"strings"
 	"time"
 
-	"github.com/equipo/logvault/internal/cryptoutil"
-	"github.com/equipo/logvault/internal/domain"
-	"github.com/equipo/logvault/internal/integrity"
-	"github.com/equipo/logvault/internal/storage"
+	"github.com/equipo/proteccion-logs/internal/almacenamiento"
+	"github.com/equipo/proteccion-logs/internal/cifrado"
+	"github.com/equipo/proteccion-logs/internal/integridad"
+	"github.com/equipo/proteccion-logs/internal/modelo"
 )
 
 // Nombres de los artefactos producidos en el directorio de salida.
 const (
-	FilePlainLog      = "log.json"
-	FilePlainHash     = "log.json.sha256"
-	FileCipherLog     = "log.enc"
-	FileCipherHash    = "log.enc.sha256"
-	FileKey           = "key.hex"
-	FileNonce         = "nonce.hex"
-	FileDecryptedLog  = "log.decrypted.json"
-	FileDecryptedHash = "log.decrypted.sha256"
+	FilePlainLog      = "log_original.json"
+	FilePlainHash     = "log_original.sha256"
+	FileCipherLog     = "log_cifrado.bin"
+	FileCipherHash    = "log_cifrado.sha256"
+	FileKey           = "llave_aes256.hex"
+	FileNonce         = "nonce_aes_gcm.hex"
+	FileDecryptedLog  = "log_descifrado.json"
+	FileDecryptedHash = "log_descifrado.sha256"
 )
 
 // aad liga el ciphertext a este formato: GCM rechaza el descifrado si cambia.
-var aad = []byte("logvault/v1")
+var aad = []byte("proteccion-logs/v1")
 
 var (
-	// ErrCiphertextHashMismatch indica que log.enc no coincide con su hash almacenado.
-	ErrCiphertextHashMismatch = errors.New("pipeline: el hash del log cifrado no coincide con el almacenado")
+	// ErrCiphertextHashMismatch indica que log_cifrado.bin no coincide con su hash almacenado.
+	ErrCiphertextHashMismatch = errors.New("flujo: el hash del log cifrado no coincide con el almacenado")
 	// ErrPlainHashMismatch indica que el log recuperado difiere del hash del original.
-	ErrPlainHashMismatch = errors.New("pipeline: el hash del log descifrado no coincide con el del original")
+	ErrPlainHashMismatch = errors.New("flujo: el hash del log descifrado no coincide con el del original")
 )
 
 // PayloadGenerator produce los payloads de los eventos.
 type PayloadGenerator interface {
-	Generate(count int) ([]domain.Payload, error)
+	Generate(count int) ([]modelo.Payload, error)
 }
 
 // Pipeline ejecuta el flujo completo sobre un Store.
 type Pipeline struct {
 	gen   PayloadGenerator
-	store *storage.Store
+	store *almacenamiento.Store
 	now   func() time.Time
 }
 
 // New crea un Pipeline. now permite inyectar el reloj en las pruebas.
-func New(gen PayloadGenerator, store *storage.Store, now func() time.Time) *Pipeline {
+func New(gen PayloadGenerator, store *almacenamiento.Store, now func() time.Time) *Pipeline {
 	return &Pipeline{gen: gen, store: store, now: now}
 }
 
@@ -59,11 +59,11 @@ func New(gen PayloadGenerator, store *storage.Store, now func() time.Time) *Pipe
 type Result struct {
 	OutputDir          string
 	EventCount         int
-	CountsByType       map[domain.EventType]int
+	CountsByType       map[modelo.EventType]int
 	PlainHash          string
 	CipherHash         string
 	DecryptedHash      string
-	CipherHashVerified bool // log.enc coincidía con su hash antes de descifrar
+	CipherHashVerified bool // log_cifrado.bin coincidía con su hash antes de descifrar
 	EventHashesValid   bool // todos los payload_hash del log recuperado son válidos
 	Preserved          bool // PlainHash == DecryptedHash
 }
@@ -94,36 +94,36 @@ func (p *Pipeline) Run(count int) (Result, error) {
 	}
 
 	// Paso 4: log estructurado completo.
-	logDoc := domain.NewLog(events, p.now())
+	logDoc := modelo.NewLog(events, p.now())
 	plain, err := marshalLog(logDoc)
 	if err != nil {
 		return Result{}, err
 	}
 
 	// Paso 5: hash del log en claro, calculado sobre los bytes exactos que se guardan.
-	plainHash := integrity.SHA256Hex(plain)
+	plainHash := integridad.SHA256Hex(plain)
 	if err := p.writeWithChecksum(FilePlainLog, plain, FilePlainHash, plainHash); err != nil {
 		return Result{}, err
 	}
 
 	// Paso 6: cifrado AES-256-GCM; llave y nonce se guardan como insumos separados.
-	material, err := cryptoutil.NewMaterial()
+	material, err := cifrado.NewMaterial()
 	if err != nil {
 		return Result{}, err
 	}
-	ciphertext, err := cryptoutil.Encrypt(material, plain, aad)
+	ciphertext, err := cifrado.Encrypt(material, plain, aad)
 	if err != nil {
 		return Result{}, err
 	}
-	if err := p.store.Write(FileKey, []byte(material.KeyHex()+"\n"), storage.PermSecret); err != nil {
+	if err := p.store.Write(FileKey, []byte(material.KeyHex()+"\n"), almacenamiento.PermSecret); err != nil {
 		return Result{}, err
 	}
-	if err := p.store.Write(FileNonce, []byte(material.NonceHex()+"\n"), storage.PermPublic); err != nil {
+	if err := p.store.Write(FileNonce, []byte(material.NonceHex()+"\n"), almacenamiento.PermPublic); err != nil {
 		return Result{}, err
 	}
 
 	// Paso 7: hash del log cifrado.
-	cipherHash := integrity.SHA256Hex(ciphertext)
+	cipherHash := integridad.SHA256Hex(ciphertext)
 	if err := p.writeWithChecksum(FileCipherLog, ciphertext, FileCipherHash, cipherHash); err != nil {
 		return Result{}, err
 	}
@@ -139,7 +139,7 @@ func (p *Pipeline) Run(count int) (Result, error) {
 	}
 
 	// Paso 9: hash del log descifrado y comparación con el original.
-	decryptedHash := integrity.SHA256Hex(recovered)
+	decryptedHash := integridad.SHA256Hex(recovered)
 	if err := p.writeWithChecksum(FileDecryptedLog, recovered, FileDecryptedHash, decryptedHash); err != nil {
 		return Result{}, err
 	}
@@ -157,8 +157,8 @@ func (p *Pipeline) Run(count int) (Result, error) {
 		CipherHash:         cipherHash,
 		DecryptedHash:      decryptedHash,
 		CipherHashVerified: true, // decryptStored habría fallado en caso contrario
-		EventHashesValid:   integrity.VerifyLog(recoveredLog) == nil,
-		Preserved:          integrity.Equal(plainHash, decryptedHash),
+		EventHashesValid:   integridad.VerifyLog(recoveredLog) == nil,
+		Preserved:          integridad.Equal(plainHash, decryptedHash),
 	}, nil
 }
 
@@ -177,14 +177,14 @@ func (p *Pipeline) VerifyStored() error {
 	if err != nil {
 		return err
 	}
-	if !integrity.Equal(integrity.SHA256Hex(recovered), expected) {
+	if !integridad.Equal(integridad.SHA256Hex(recovered), expected) {
 		return ErrPlainHashMismatch
 	}
 	logDoc, err := unmarshalLog(recovered)
 	if err != nil {
 		return err
 	}
-	return integrity.VerifyLog(logDoc)
+	return integridad.VerifyLog(logDoc)
 }
 
 // SimulateTampering altera un byte del log cifrado EN MEMORIA (los archivos no
@@ -195,7 +195,7 @@ func (p *Pipeline) SimulateTampering() (TamperReport, error) {
 		return TamperReport{}, err
 	}
 	if len(ciphertext) == 0 {
-		return TamperReport{}, errors.New("pipeline: el log cifrado está vacío")
+		return TamperReport{}, errors.New("flujo: el log cifrado está vacío")
 	}
 	tampered := bytes.Clone(ciphertext)
 	tampered[len(tampered)/2] ^= 0xFF
@@ -208,11 +208,11 @@ func (p *Pipeline) SimulateTampering() (TamperReport, error) {
 	if err != nil {
 		return TamperReport{}, err
 	}
-	_, decErr := cryptoutil.Decrypt(material, tampered, aad)
+	_, decErr := cifrado.Decrypt(material, tampered, aad)
 
 	return TamperReport{
-		HashMismatchDetected: !integrity.Equal(integrity.SHA256Hex(tampered), storedHash),
-		AuthenticationFailed: errors.Is(decErr, cryptoutil.ErrAuthentication),
+		HashMismatchDetected: !integridad.Equal(integridad.SHA256Hex(tampered), storedHash),
+		AuthenticationFailed: errors.Is(decErr, cifrado.ErrAuthentication),
 	}, nil
 }
 
@@ -222,26 +222,26 @@ func (p *Pipeline) decryptStored(ciphertext []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !integrity.Equal(integrity.SHA256Hex(ciphertext), expected) {
+	if !integridad.Equal(integridad.SHA256Hex(ciphertext), expected) {
 		return nil, ErrCiphertextHashMismatch
 	}
 	material, err := p.readMaterial()
 	if err != nil {
 		return nil, err
 	}
-	return cryptoutil.Decrypt(material, ciphertext, aad)
+	return cifrado.Decrypt(material, ciphertext, aad)
 }
 
-func (p *Pipeline) readMaterial() (cryptoutil.Material, error) {
+func (p *Pipeline) readMaterial() (cifrado.Material, error) {
 	key, err := p.store.Read(FileKey)
 	if err != nil {
-		return cryptoutil.Material{}, err
+		return cifrado.Material{}, err
 	}
 	nonce, err := p.store.Read(FileNonce)
 	if err != nil {
-		return cryptoutil.Material{}, err
+		return cifrado.Material{}, err
 	}
-	return cryptoutil.DecodeMaterial(strings.TrimSpace(string(key)), strings.TrimSpace(string(nonce)))
+	return cifrado.DecodeMaterial(strings.TrimSpace(string(key)), strings.TrimSpace(string(nonce)))
 }
 
 func (p *Pipeline) readChecksum(name string) (string, error) {
@@ -249,20 +249,20 @@ func (p *Pipeline) readChecksum(name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return integrity.ParseChecksum(data)
+	return integridad.ParseChecksum(data)
 }
 
 func (p *Pipeline) writeWithChecksum(name string, data []byte, checksumName, hash string) error {
-	if err := p.store.Write(name, data, storage.PermPublic); err != nil {
+	if err := p.store.Write(name, data, almacenamiento.PermPublic); err != nil {
 		return err
 	}
-	return p.store.Write(checksumName, integrity.FormatChecksum(hash, name), storage.PermPublic)
+	return p.store.Write(checksumName, integridad.FormatChecksum(hash, name), almacenamiento.PermPublic)
 }
 
-func sealEvents(payloads []domain.Payload) ([]domain.Event, error) {
-	events := make([]domain.Event, 0, len(payloads))
+func sealEvents(payloads []modelo.Payload) ([]modelo.Event, error) {
+	events := make([]modelo.Event, 0, len(payloads))
 	for _, pl := range payloads {
-		e, err := integrity.NewEvent(pl)
+		e, err := integridad.NewEvent(pl)
 		if err != nil {
 			return nil, err
 		}
@@ -271,7 +271,7 @@ func sealEvents(payloads []domain.Payload) ([]domain.Event, error) {
 	return events, nil
 }
 
-func marshalLog(l domain.Log) ([]byte, error) {
+func marshalLog(l modelo.Log) ([]byte, error) {
 	raw, err := json.MarshalIndent(l, "", "  ")
 	if err != nil {
 		return nil, fmt.Errorf("serializar log: %w", err)
@@ -279,12 +279,12 @@ func marshalLog(l domain.Log) ([]byte, error) {
 	return append(raw, '\n'), nil
 }
 
-func unmarshalLog(data []byte) (domain.Log, error) {
-	var l domain.Log
+func unmarshalLog(data []byte) (modelo.Log, error) {
+	var l modelo.Log
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&l); err != nil {
-		return domain.Log{}, fmt.Errorf("interpretar log: %w", err)
+		return modelo.Log{}, fmt.Errorf("interpretar log: %w", err)
 	}
 	return l, nil
 }

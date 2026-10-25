@@ -1,6 +1,6 @@
-// Package cli implementa el menú interactivo. La interacción con la terminal
+// Package menu implementa el menú interactivo. La interacción con la terminal
 // vive detrás de la interfaz Prompter para poder probar el flujo sin TTY.
-package cli
+package menu
 
 import (
 	"errors"
@@ -9,13 +9,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/equipo/logvault/internal/domain"
-	"github.com/equipo/logvault/internal/generator"
-	"github.com/equipo/logvault/internal/pipeline"
+	"github.com/equipo/proteccion-logs/internal/flujo"
+	"github.com/equipo/proteccion-logs/internal/generador"
+	"github.com/equipo/proteccion-logs/internal/modelo"
 )
 
 // ErrAborted indica que el usuario canceló (Ctrl+C / Ctrl+D) en un prompt.
-var ErrAborted = errors.New("cli: operación cancelada por el usuario")
+var ErrAborted = errors.New("menu: operación cancelada por el usuario")
 
 // Prompter abstrae la interacción con la terminal (implementada con promptui).
 type Prompter interface {
@@ -27,9 +27,9 @@ type Prompter interface {
 
 // Runner es la parte del pipeline que consume la interfaz.
 type Runner interface {
-	Run(count int) (pipeline.Result, error)
+	Run(count int) (flujo.Result, error)
 	VerifyStored() error
-	SimulateTampering() (pipeline.TamperReport, error)
+	SimulateTampering() (flujo.TamperReport, error)
 }
 
 const (
@@ -53,7 +53,7 @@ type App struct {
 	prompter Prompter
 	runner   Runner
 	out      io.Writer
-	last     *pipeline.Result
+	last     *flujo.Result
 }
 
 // NewApp construye la aplicación.
@@ -64,7 +64,7 @@ func NewApp(p Prompter, r Runner, out io.Writer) *App {
 // Run muestra el menú hasta que el usuario sale o cancela. Los errores de cada
 // acción se informan sin terminar el programa.
 func (a *App) Run() error {
-	fmt.Fprintln(a.out, "LogVault — protección de logs académicos en reposo")
+	fmt.Fprintln(a.out, "Protección de logs académicos en reposo")
 	for {
 		idx, err := a.prompter.Select("Menú principal", menuItems)
 		if errors.Is(err, ErrAborted) {
@@ -96,7 +96,7 @@ func (a *App) Run() error {
 }
 
 func (a *App) runFlow() error {
-	label := fmt.Sprintf("Cantidad de eventos a generar (1-%d)", generator.MaxEvents)
+	label := fmt.Sprintf("Cantidad de eventos a generar (1-%d)", generador.MaxEvents)
 	answer, err := a.prompter.Ask(label, func(s string) error {
 		_, err := ParseCount(s)
 		return err
@@ -155,21 +155,21 @@ func ParseCount(s string) (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("ingrese un número entero")
 	}
-	if err := generator.ValidateCount(n); err != nil {
+	if err := generador.ValidateCount(n); err != nil {
 		return 0, err
 	}
 	return n, nil
 }
 
 // FormatResult arma el reporte del paso 10.
-func FormatResult(r pipeline.Result) string {
+func FormatResult(r flujo.Result) string {
 	var b strings.Builder
 	line := func(label, value string) { fmt.Fprintf(&b, "  %-44s %s\n", label, value) }
 
 	b.WriteString("\n══════════ RESULTADOS ══════════\n")
 	line("Eventos generados:", strconv.Itoa(r.EventCount))
-	line("  Registros de nota (GRADE_REGISTERED):", strconv.Itoa(r.CountsByType[domain.GradeRegistered]))
-	line("  Modificaciones de nota (GRADE_MODIFIED):", strconv.Itoa(r.CountsByType[domain.GradeModified]))
+	line("  Registros de nota (GRADE_REGISTERED):", strconv.Itoa(r.CountsByType[modelo.GradeRegistered]))
+	line("  Modificaciones de nota (GRADE_MODIFIED):", strconv.Itoa(r.CountsByType[modelo.GradeModified]))
 	line("Artefactos guardados en:", r.OutputDir)
 	b.WriteString("\n  SHA-256 por etapa\n")
 	line("  1. Log original (texto plano):", r.PlainHash)

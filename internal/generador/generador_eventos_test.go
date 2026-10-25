@@ -1,4 +1,4 @@
-package generator
+package generador
 
 import (
 	"errors"
@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/equipo/logvault/internal/domain"
+	"github.com/equipo/proteccion-logs/internal/modelo"
 )
 
 var start = time.Date(2026, 10, 1, 8, 0, 0, 0, time.UTC)
@@ -74,15 +74,15 @@ func TestGradesAreUniformInRange(t *testing.T) {
 func TestBothEventTypesAppearWithConsistentFields(t *testing.T) {
 	payloads, _ := newGen().Generate(2000)
 
-	counts := map[domain.EventType]int{}
+	counts := map[modelo.EventType]int{}
 	for _, p := range payloads {
 		counts[p.EventType]++
 		switch p.EventType {
-		case domain.GradeRegistered:
+		case modelo.GradeRegistered:
 			if p.PreviousValue != nil {
 				t.Fatalf("%s: un registro no debe tener previous_value", p.EventID)
 			}
-		case domain.GradeModified:
+		case modelo.GradeModified:
 			if p.PreviousValue == nil {
 				t.Fatalf("%s: una modificación debe tener previous_value", p.EventID)
 			}
@@ -96,7 +96,7 @@ func TestBothEventTypesAppearWithConsistentFields(t *testing.T) {
 			t.Fatalf("tipo inesperado %q", p.EventType)
 		}
 	}
-	if counts[domain.GradeRegistered] == 0 || counts[domain.GradeModified] == 0 {
+	if counts[modelo.GradeRegistered] == 0 || counts[modelo.GradeModified] == 0 {
 		t.Errorf("deben aparecer ambos tipos, got %v", counts)
 	}
 }

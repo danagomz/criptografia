@@ -1,5 +1,5 @@
-// Package domain define el modelo de datos del log de eventos académicos.
-package domain
+// Package modelo define el modelo de datos del log de eventos académicos.
+package modelo
 
 import "time"
 

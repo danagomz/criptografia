@@ -1,4 +1,4 @@
-package cli
+package menu
 
 import (
 	"bytes"
@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/equipo/logvault/internal/domain"
-	"github.com/equipo/logvault/internal/generator"
-	"github.com/equipo/logvault/internal/pipeline"
+	"github.com/equipo/proteccion-logs/internal/flujo"
+	"github.com/equipo/proteccion-logs/internal/generador"
+	"github.com/equipo/proteccion-logs/internal/modelo"
 )
 
 // fakePrompter reproduce un guion de selecciones y respuestas.
@@ -36,29 +36,29 @@ func (f *fakePrompter) Ask(_ string, validate func(string) error) (string, error
 }
 
 type fakeRunner struct {
-	result       pipeline.Result
+	result       flujo.Result
 	runErr       error
 	verifyErr    error
-	tamper       pipeline.TamperReport
+	tamper       flujo.TamperReport
 	runCounts    []int
 	verifyCalled int
 }
 
-func (f *fakeRunner) Run(count int) (pipeline.Result, error) {
+func (f *fakeRunner) Run(count int) (flujo.Result, error) {
 	f.runCounts = append(f.runCounts, count)
 	return f.result, f.runErr
 }
 func (f *fakeRunner) VerifyStored() error { f.verifyCalled++; return f.verifyErr }
-func (f *fakeRunner) SimulateTampering() (pipeline.TamperReport, error) {
+func (f *fakeRunner) SimulateTampering() (flujo.TamperReport, error) {
 	return f.tamper, nil
 }
 
-func goodResult() pipeline.Result {
-	return pipeline.Result{
+func goodResult() flujo.Result {
+	return flujo.Result{
 		OutputDir:  "output",
 		EventCount: 5,
-		CountsByType: map[domain.EventType]int{
-			domain.GradeRegistered: 2, domain.GradeModified: 3,
+		CountsByType: map[modelo.EventType]int{
+			modelo.GradeRegistered: 2, modelo.GradeModified: 3,
 		},
 		PlainHash: "aaaa", CipherHash: "bbbb", DecryptedHash: "aaaa",
 		CipherHashVerified: true, EventHashesValid: true, Preserved: true,
@@ -100,7 +100,7 @@ func TestParseCount(t *testing.T) {
 }
 
 func TestParseCountRangeErrorWrapsSentinel(t *testing.T) {
-	if _, err := ParseCount("0"); !errors.Is(err, generator.ErrInvalidCount) {
+	if _, err := ParseCount("0"); !errors.Is(err, generador.ErrInvalidCount) {
 		t.Errorf("err = %v", err)
 	}
 }
@@ -171,7 +171,7 @@ func TestVerifyOKAndFailure(t *testing.T) {
 
 func TestTamperReport(t *testing.T) {
 	detected := runApp(t, &fakePrompter{selects: []int{menuTamper, menuExit}},
-		&fakeRunner{tamper: pipeline.TamperReport{HashMismatchDetected: true, AuthenticationFailed: true}})
+		&fakeRunner{tamper: flujo.TamperReport{HashMismatchDetected: true, AuthenticationFailed: true}})
 	if !strings.Contains(detected, "ALTERACIÓN DETECTADA") {
 		t.Errorf("salida: %s", detected)
 	}

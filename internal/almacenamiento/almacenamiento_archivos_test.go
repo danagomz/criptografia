@@ -1,4 +1,4 @@
-package storage
+package almacenamiento
 
 import (
 	"bytes"
@@ -41,9 +41,9 @@ func TestSecretFilePermissions(t *testing.T) {
 		t.Skip("los bits de permiso POSIX no aplican en Windows")
 	}
 	s, _ := New(t.TempDir())
-	_ = s.Write("key.hex", []byte("secreto"), PermSecret)
+	_ = s.Write("llave_aes256.hex", []byte("secreto"), PermSecret)
 
-	info, err := os.Stat(filepath.Join(s.Dir(), "key.hex"))
+	info, err := os.Stat(filepath.Join(s.Dir(), "llave_aes256.hex"))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,6 +1,6 @@
-// Package cryptoutil implementa cifrado autenticado AES-256-GCM con la
+// Package cifrado implementa cifrado autenticado AES-256-GCM con la
 // biblioteca estándar de Go (crypto/aes, crypto/cipher, crypto/rand).
-package cryptoutil
+package cifrado
 
 import (
 	"crypto/aes"
@@ -20,12 +20,12 @@ const (
 
 var (
 	// ErrInvalidKeySize indica una llave que no mide KeySize bytes.
-	ErrInvalidKeySize = errors.New("cryptoutil: la llave debe medir 32 bytes")
+	ErrInvalidKeySize = errors.New("cifrado: la llave debe medir 32 bytes")
 	// ErrInvalidNonceSize indica un nonce que no mide NonceSize bytes.
-	ErrInvalidNonceSize = errors.New("cryptoutil: el nonce debe medir 12 bytes")
+	ErrInvalidNonceSize = errors.New("cifrado: el nonce debe medir 12 bytes")
 	// ErrAuthentication indica que el etiquetado GCM falló: datos, llave,
 	// nonce o AAD incorrectos, o ciphertext manipulado.
-	ErrAuthentication = errors.New("cryptoutil: autenticación fallida (¿datos alterados o llave incorrecta?)")
+	ErrAuthentication = errors.New("cifrado: autenticación fallida (¿datos alterados o llave incorrecta?)")
 )
 
 // Material agrupa los insumos criptográficos de una operación de cifrado.

@@ -1,6 +1,6 @@
-// Package integrity concentra el hashing SHA-256: hash de payload por evento,
+// Package integridad concentra el hashing SHA-256: hash de payload por evento,
 // hash de artefactos completos y verificación en tiempo constante.
-package integrity
+package integridad
 
 import (
 	"crypto/sha256"
@@ -11,16 +11,16 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/equipo/logvault/internal/domain"
+	"github.com/equipo/proteccion-logs/internal/modelo"
 )
 
 var (
 	// ErrPayloadHashMismatch indica que el payload de un evento fue alterado.
-	ErrPayloadHashMismatch = errors.New("integrity: el hash del payload no coincide")
+	ErrPayloadHashMismatch = errors.New("integridad: el hash del payload no coincide")
 	// ErrEventCountMismatch indica que event_count no coincide con los eventos presentes.
-	ErrEventCountMismatch = errors.New("integrity: event_count no coincide con el número de eventos")
+	ErrEventCountMismatch = errors.New("integridad: event_count no coincide con el número de eventos")
 	// ErrInvalidChecksum indica un archivo de checksum mal formado.
-	ErrInvalidChecksum = errors.New("integrity: checksum mal formado")
+	ErrInvalidChecksum = errors.New("integridad: checksum mal formado")
 )
 
 // SHA256Hex devuelve el SHA-256 de data en hexadecimal minúscula.
@@ -38,7 +38,7 @@ func Equal(a, b string) bool {
 //
 // La serialización es determinista: Go emite los campos de un struct en el
 // orden de declaración, y el payload no contiene mapas.
-func PayloadHash(p domain.Payload) (string, error) {
+func PayloadHash(p modelo.Payload) (string, error) {
 	raw, err := json.Marshal(p)
 	if err != nil {
 		return "", fmt.Errorf("serializar payload %s: %w", p.EventID, err)
@@ -47,16 +47,16 @@ func PayloadHash(p domain.Payload) (string, error) {
 }
 
 // NewEvent sella un payload con su hash.
-func NewEvent(p domain.Payload) (domain.Event, error) {
+func NewEvent(p modelo.Payload) (modelo.Event, error) {
 	h, err := PayloadHash(p)
 	if err != nil {
-		return domain.Event{}, err
+		return modelo.Event{}, err
 	}
-	return domain.Event{Payload: p, PayloadHash: h}, nil
+	return modelo.Event{Payload: p, PayloadHash: h}, nil
 }
 
 // VerifyEvent recalcula el hash del payload y lo compara con el almacenado.
-func VerifyEvent(e domain.Event) error {
+func VerifyEvent(e modelo.Event) error {
 	h, err := PayloadHash(e.Payload)
 	if err != nil {
 		return err
@@ -69,7 +69,7 @@ func VerifyEvent(e domain.Event) error {
 
 // VerifyLog valida event_count y el hash de cada evento. Devuelve todos los
 // problemas encontrados, unidos con errors.Join, o nil si el log es íntegro.
-func VerifyLog(l domain.Log) error {
+func VerifyLog(l modelo.Log) error {
 	var errs []error
 	if l.EventCount != len(l.Events) {
 		errs = append(errs, fmt.Errorf("%w: declara %d, hay %d",

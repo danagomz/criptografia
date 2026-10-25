@@ -1,4 +1,4 @@
-package cryptoutil
+package cifrado
 
 import (
 	"bytes"
@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-var testAAD = []byte("logvault/test")
+var testAAD = []byte("proteccion-logs/test")
 
 func mustMaterial(t *testing.T) Material {
 	t.Helper()

@@ -1,5 +1,5 @@
-// Package storage persiste los artefactos del proceso en un directorio de salida.
-package storage
+// Package almacenamiento persiste los artefactos del proceso en un directorio de salida.
+package almacenamiento
 
 import (
 	"errors"
@@ -9,7 +9,7 @@ import (
 )
 
 // ErrInvalidName indica un nombre de artefacto que intenta salirse del directorio.
-var ErrInvalidName = errors.New("storage: nombre de artefacto inválido")
+var ErrInvalidName = errors.New("almacenamiento: nombre de artefacto inválido")
 
 const (
 	// PermPublic es el permiso de artefactos no secretos (log, hashes).

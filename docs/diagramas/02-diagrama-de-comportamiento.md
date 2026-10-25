@@ -22,19 +22,19 @@ sequenceDiagram
     I-->>P: eventos con payload_hash
     P->>P: Paso 4: construir log JSON
     P->>I: Paso 5: SHA-256(log claro)
-    P->>S: guardar log.json + log.json.sha256
+    P->>S: guardar log_original.json + log_original.sha256
     P->>K: Paso 6: Encrypt(llave, nonce, log, AAD)
     K-->>P: ciphertext
-    P->>S: guardar log.enc, key.hex, nonce.hex
+    P->>S: guardar log_cifrado.bin, llave_aes256.hex, nonce_aes_gcm.hex
     P->>I: Paso 7: SHA-256(log cifrado)
-    P->>S: guardar log.enc.sha256
-    P->>S: leer log.enc
-    P->>I: ¿hash(log.enc) == log.enc.sha256?
+    P->>S: guardar log_cifrado.sha256
+    P->>S: leer log_cifrado.bin
+    P->>I: ¿hash(log_cifrado.bin) == log_cifrado.sha256?
     P->>K: Paso 8: Decrypt (verifica etiqueta GCM)
     K-->>P: log descifrado
     P->>I: Paso 9: SHA-256(log descifrado)
     P->>P: comparar con hash del original
-    P->>S: guardar log.decrypted.json + .sha256
+    P->>S: guardar log_descifrado.json + .sha256
     P-->>C: Result
     C->>U: Paso 10: conteos, hashes, comparación, conclusión
 ```
