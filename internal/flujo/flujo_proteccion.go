@@ -57,21 +57,21 @@ func New(gen PayloadGenerator, store *almacenamiento.Store, now func() time.Time
 
 // Result resume una ejecución para presentarla al usuario (paso 10).
 type Result struct {
-	OutputDir          string
-	EventCount         int
-	CountsByType       map[modelo.EventType]int
-	PlainHash          string
-	CipherHash         string
-	DecryptedHash      string
-	CipherHashVerified bool // log_cifrado.bin coincidía con su hash antes de descifrar
-	EventHashesValid   bool // todos los payload_hash del log recuperado son válidos
-	Preserved          bool // PlainHash == DecryptedHash
+	OutputDir          string                   `json:"output_dir"`
+	EventCount         int                      `json:"event_count"`
+	CountsByType       map[modelo.EventType]int `json:"counts_by_type"`
+	PlainHash          string                   `json:"plain_hash"`
+	CipherHash         string                   `json:"cipher_hash"`
+	DecryptedHash      string                   `json:"decrypted_hash"`
+	CipherHashVerified bool                     `json:"cipher_hash_verified"` // log_cifrado.bin coincidía con su hash antes de descifrar
+	EventHashesValid   bool                     `json:"event_hashes_valid"`   // todos los payload_hash del log recuperado son válidos
+	Preserved          bool                     `json:"preserved"`            // PlainHash == DecryptedHash
 }
 
 // TamperReport describe cómo reaccionan las defensas ante un log cifrado alterado.
 type TamperReport struct {
-	HashMismatchDetected bool // el hash SHA-256 almacenado ya no coincide
-	AuthenticationFailed bool // la etiqueta de GCM rechazó el descifrado
+	HashMismatchDetected bool `json:"hash_mismatch_detected"` // el hash SHA-256 almacenado ya no coincide
+	AuthenticationFailed bool `json:"authentication_failed"`  // la etiqueta de GCM rechazó el descifrado
 }
 
 // Detected indica si al menos una defensa detectó la alteración.
