@@ -15,34 +15,36 @@
       <aside class="panel controls">
         <div class="generate-control">
           <h2>Generar eventos</h2>
-          <label for="count">Cantidad de eventos</label>
-          <input id="count" type="number" min="1" max="100000" value="12">
-          <small>Entre 1 y 100 000</small>
+          <form action="/run" method="post">
+            <label for="count">Cantidad de eventos</label>
+            <input id="count" name="count" type="number" min="1" max="100000" value="{{.Count}}" required>
+            <small>Entre 1 y 100 000</small>
+            <button class="button primary" type="submit">Ejecutar flujo</button>
+          </form>
         </div>
-        <button id="run" class="button primary">Ejecutar flujo</button>
         <div class="actions">
           <h2>Comprobar resultados</h2>
-          <button id="verify" class="button secondary" disabled>Verificar artefactos</button>
-          <button id="tamper" class="button secondary" disabled>Simular manipulación</button>
+          <form action="/verify" method="post"><button class="button secondary" type="submit" {{if not .HasResult}}disabled{{end}}>Verificar artefactos</button></form>
+          <form action="/tamper" method="post"><button class="button secondary" type="submit" {{if not .HasResult}}disabled{{end}}>Simular manipulación</button></form>
         </div>
         <p class="help">La simulación altera un byte en memoria; el archivo guardado no cambia.</p>
       </aside>
       <section class="content">
-        <div class="panel status-panel"><span class="status-icon" id="status-icon">i</span><div><b id="status-label">Listo</b><p id="status-copy">Ejecuta el flujo para ver los resultados.</p></div><div class="spinner" id="spinner"></div></div>
-        <div class="panel summary"><div><small>EVENTOS</small><strong id="total">—</strong><span id="types">Registros — · Modificaciones —</span></div><div><small>ALGORITMOS</small><strong>SHA-256</strong><span>AES-256-GCM para cifrado</span></div></div>
-        <div class="panel section"><div class="section-title"><h2>Hashes por etapa</h2><span class="badge" id="preserve-badge">Sin ejecución</span></div>
-          <div class="hash-row"><b>Original</b><code id="plain-hash">—</code><button class="copy" data-copy="plain-hash" title="Copiar">Copiar</button></div>
-          <div class="hash-row"><b>Cifrado</b><code id="cipher-hash">—</code><button class="copy" data-copy="cipher-hash" title="Copiar">Copiar</button></div>
-          <div class="hash-row"><b>Descifrado</b><code id="decrypted-hash">—</code><button class="copy" data-copy="decrypted-hash" title="Copiar">Copiar</button></div>
-          <div class="comparison" id="comparison"><b>Comparación:</b><span id="comparison-text">Aún no hay resultados.</span></div>
+        <div class="panel status-panel {{.StatusKind}}"><span class="status-icon">{{if eq .StatusKind "success"}}✓{{else if eq .StatusKind "failure"}}!{{else}}i{{end}}</span><div><b id="status-label">{{.StatusTitle}}</b><p id="status-copy">{{.StatusMessage}}</p></div></div>
+        <div class="panel summary"><div><small>EVENTOS</small><strong>{{.EventCount}}</strong><span>Registros {{.Registered}} · Modificaciones {{.Modified}}</span></div><div><small>ALGORITMOS</small><strong>SHA-256</strong><span>AES-256-GCM para cifrado</span></div></div>
+        <div class="panel section"><div class="section-title"><h2>Hashes por etapa</h2><span class="badge {{.BadgeKind}}">{{.BadgeText}}</span></div>
+          <div class="hash-row"><b>Original</b><code>{{if .PlainHash}}{{.PlainHash}}{{else}}—{{end}}</code></div>
+          <div class="hash-row"><b>Cifrado</b><code>{{if .CipherHash}}{{.CipherHash}}{{else}}—{{end}}</code></div>
+          <div class="hash-row"><b>Descifrado</b><code>{{if .DecryptedHash}}{{.DecryptedHash}}{{else}}—{{end}}</code></div>
+          <div class="comparison {{.ComparisonKind}}"><b>Comparación:</b><span>{{.ComparisonText}}</span></div>
         </div>
-        <div class="panel section"><div class="section-title"><h2>Eventos generados</h2><span class="badge" id="event-count">0 eventos</span></div>
-          <div class="table-wrap"><table><thead><tr><th>ID / tipo</th><th>Estudiante</th><th>Curso</th><th>Nota</th><th>Hash del payload</th></tr></thead><tbody id="events"><tr><td class="empty" colspan="5">Los eventos aparecerán aquí.</td></tr></tbody></table></div>
+        <div class="panel section"><div class="section-title"><h2>Eventos generados</h2><span class="badge">{{.EventCount}} eventos</span></div>
+          <div class="table-wrap"><table><thead><tr><th>ID / tipo</th><th>Estudiante</th><th>Curso</th><th>Nota</th><th>Hash del payload</th></tr></thead><tbody>
+            {{if .Events}}{{range .Events}}<tr><td><b>{{.EventID}}</b><small class="{{if .Modified}}modified{{end}}">{{.TypeLabel}}</small></td><td>{{.StudentUID}}</td><td>{{.CourseUID}}</td><td class="grade">{{if .Modified}}{{printf "%.2f" .Previous}}<span class="grade-change">→ {{printf "%.2f" .NewValue}}</span>{{else}}{{printf "%.2f" .NewValue}}{{end}}</td><td><code>{{.PayloadHash}}</code></td></tr>{{end}}{{else}}<tr><td class="empty" colspan="5">Los eventos aparecerán aquí.</td></tr>{{end}}
+          </tbody></table></div>
         </div>
       </section>
     </section>
   </main>
-  <div id="toast" class="toast"></div>
-  <script src="/app.js" defer></script>
 </body>
 </html>

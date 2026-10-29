@@ -27,6 +27,6 @@ El servidor escucha solo en `127.0.0.1` por defecto. Para detenerlo usa `Ctrl+C`
 
 Los artefactos criptográficos quedan en `output/` (o el directorio indicado con `-out`), según el flujo existente. La llave AES se guarda como parte del ejercicio y debe protegerse: quien la obtenga junto con el ciphertext puede descifrarlo.
 
-## Conexión frontend/backend
+## Conexión interfaz/backend
 
-La página está en `internal/webui/static/` y se incorpora al ejecutable mediante `embed`. El paquete `internal/webui` publica `POST /api/run`, `POST /api/verify` y `POST /api/tamper`; todos delegan las operaciones criptográficas en `internal/flujo`, sin replicar el cifrado ni el hashing en JavaScript.
+La página está en `internal/webui/static/` y se incorpora al ejecutable mediante `embed`. Los formularios HTML envían solicitudes `POST` a `/run`, `/verify` y `/tamper`; Go ejecuta la acción y vuelve a renderizar la página con el resultado. La interfaz no usa JavaScript y las operaciones criptográficas siguen delegándose en `internal/flujo`.
