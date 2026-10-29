@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f7fb">
+  <title>Protección de logs académicos</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar"><div class="brand">Taller de criptografía</div><span class="local"><i></i> Ejecución local</span></header>
+  <main>
+    <section class="intro"><h1>Protección de logs</h1><p>Genera eventos académicos y revisa cómo se protegen con SHA-256 y AES-256-GCM.</p></section>
+    <section class="layout">
+      <aside class="panel controls">
+        <div class="generate-control">
+          <h2>Generar eventos</h2>
+          <form action="/run" method="post">
+            <label for="count">Cantidad de eventos</label>
+            <input id="count" name="count" type="number" min="1" max="100000" value="{{.Count}}" required>
+            <small>Entre 1 y 100 000</small>
+            <button class="button primary" type="submit">Ejecutar flujo</button>
+          </form>
+        </div>
+        <div class="actions">
+          <h2>Comprobar resultados</h2>
+          <form action="/verify" method="post"><button class="button secondary" type="submit" {{if not .HasResult}}disabled{{end}}>Verificar artefactos</button></form>
+          <form action="/tamper" method="post"><button class="button secondary" type="submit" {{if not .HasResult}}disabled{{end}}>Simular manipulación</button></form>
+        </div>
+        <p class="help">La simulación altera un byte en memoria; el archivo guardado no cambia.</p>
+      </aside>
+      <section class="content">
+        <div class="panel status-panel {{.StatusKind}}"><span class="status-icon">{{if eq .StatusKind "success"}}✓{{else if eq .StatusKind "failure"}}!{{else}}i{{end}}</span><div><b id="status-label">{{.StatusTitle}}</b><p id="status-copy">{{.StatusMessage}}</p></div></div>
+        <div class="panel summary"><div><small>EVENTOS</small><strong>{{.EventCount}}</strong><span>Registros {{.Registered}} · Modificaciones {{.Modified}}</span></div><div><small>ALGORITMOS</small><strong>SHA-256</strong><span>AES-256-GCM para cifrado</span></div></div>
+        <div class="panel section"><div class="section-title"><h2>Hashes por etapa</h2><span class="badge {{.BadgeKind}}">{{.BadgeText}}</span></div>
+          <div class="hash-row"><b>Original</b><code>{{if .PlainHash}}{{.PlainHash}}{{else}}—{{end}}</code></div>
+          <div class="hash-row"><b>Cifrado</b><code>{{if .CipherHash}}{{.CipherHash}}{{else}}—{{end}}</code></div>
+          <div class="hash-row"><b>Descifrado</b><code>{{if .DecryptedHash}}{{.DecryptedHash}}{{else}}—{{end}}</code></div>
+          <div class="comparison {{.ComparisonKind}}"><b>Comparación:</b><span>{{.ComparisonText}}</span></div>
+        </div>
+        <div class="panel section"><div class="section-title"><h2>Eventos generados</h2><span class="badge">{{.EventCount}} eventos</span></div>
+          <div class="table-wrap"><table><thead><tr><th>ID / tipo</th><th>Estudiante</th><th>Curso</th><th>Nota</th><th>Hash del payload</th></tr></thead><tbody>
+            {{if .Events}}{{range .Events}}<tr><td><b>{{.EventID}}</b><small class="{{if .Modified}}modified{{end}}">{{.TypeLabel}}</small></td><td>{{.StudentUID}}</td><td>{{.CourseUID}}</td><td class="grade">{{if .Modified}}{{printf "%.2f" .Previous}}<span class="grade-change">→ {{printf "%.2f" .NewValue}}</span>{{else}}{{printf "%.2f" .NewValue}}{{end}}</td><td><code>{{.PayloadHash}}</code></td></tr>{{end}}{{else}}<tr><td class="empty" colspan="5">Los eventos aparecerán aquí.</td></tr>{{end}}
+          </tbody></table></div>
+        </div>
+      </section>
+    </section>
+  </main>
+</body>
+</html>
